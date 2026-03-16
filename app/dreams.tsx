@@ -16,8 +16,16 @@ import {
     View,
 } from 'react-native';
 import { useAppTheme } from '../lib/ThemeContext';
+// შემოვიტანეთ ბაზა
+import { FULL_DREAM_DICTIONARY } from '../lib/dreamData';
 
 const { width, height } = Dimensions.get('window');
+
+// 🔴 1. ვუწერთ ტიპს (TypeScript-მა რომ აღარ გააწითლოს)
+interface DreamItem {
+    word: string;
+    meaning: string;
+}
 
 const ALPHABET = [
     'ა', 'ბ', 'გ', 'დ', 'ე', 'ვ', 'ზ', 'თ', 'ი', 'კ', 'ლ', 'მ', 'ნ', 'ო',
@@ -25,28 +33,10 @@ const ALPHABET = [
     'წ', 'ჭ', 'ხ', 'ჯ', 'ჰ'
 ];
 
-// 🔴 სრული ბაზა (ტესტირებისთვის)
-const DREAM_DICTIONARY = [
-    { word: 'ავტობუსი', meaning: 'სიზმარში ავტობუსით მგზავრობა ნიშნავს ცხოვრებისეულ ცვლილებებს და ახალ გზაზე დადგომას.' },
-    { word: 'აივანი', meaning: 'აივანზე დგომა მიანიშნებს ახალ პერსპექტივებზე და სიტუაციის ზემოდან დანახვის უნარზე.' },
-    { word: 'ბავშვი', meaning: 'ბავშვის ნახვა სასიხარულო ამბავს ან იდეის დაბადებას ნიშნავს.' },
-    { word: 'ბეჭედი', meaning: 'სიმბოლოა ძლიერი კავშირის, ერთგულების ან გარდაუვალი ქორწინების.' },
-    { word: 'გველი', meaning: 'შეიძლება ნიშნავდეს ფარულ მტერს, ან პირიქით — სიბრძნეს და განკურნებას.' },
-    { word: 'გემი', meaning: 'მგზავრობა დიდ და მნიშვნელოვან ცვლილებებს წინასწარმეტყველებს.' },
-    { word: 'დედა', meaning: 'მზრუნველობა და დაცვა. მიანიშნებს, რომ მნიშვნელოვანი რჩევა გჭირდებათ.' },
-    { word: 'ვარსკვლავი', meaning: 'დიდი იმედები და სურვილების ასრულება.' },
-    { word: 'ორსულობა', meaning: 'ახალი დასაწყისი, იდეის დაბადება ან დიდი ფინანსური მოგება.' },
-    { word: 'ცოცხალი ადამიანი, როგორც გარდაცვლილი', meaning: 'იმ ადამიანის დიდხანს სიცოცხლესა და ჯანმრთელობას ნიშნავს.' },
-    { word: 'ოქრო', meaning: 'წარმატება საქმეში, სიმდიდრე, მაგრამ ზოგჯერ შეიძლება ნიშნავდეს ცდუნებას.' },
-    { word: 'კბილები', meaning: 'ჯანმრთელობის ან ახლობლებთან ურთიერთობის სიმბოლო.' },
-    { word: 'კბილების ცვენა', meaning: 'დანაკარგი, შიში ან ენერგიის გამოცლა.' },
-    { word: 'ძაღლი', meaning: 'ერთგული მეგობარი, დაცვა და მხარდაჭერა.' },
-    { word: 'ფეხსაცმელი', meaning: 'ახალი გზა, მოგზაურობა ან კარიერული წინსვლა.' },
-    { word: 'ავტომობილი', meaning: 'შენი ცხოვრებისეული გზა და მისი მართვის უნარი.' },
-    { word: 'ორსული ქალი', meaning: 'სასიამოვნო სიურპრიზი ან დიდი მოგება.' }
-];
+// 🔴 2. ვეუბნებით კოდს, რომ ეს არის DreamItem-ების მასივი
+const DREAM_DICTIONARY = FULL_DREAM_DICTIONARY as DreamItem[];
 
-// 🔴 პოპულარული სიტყვები (სქრინიდან)
+// პოპულარული სიტყვები (სქრინიდან)
 const POPULAR_WORDS = [
     'გველი', 'ორსულობა', 'ცოცხალი ადამიანი, როგორც გარდაცვლილი', 'ოქრო',
     'კბილები', 'ძაღლი', 'კბილების ცვენა', 'ფეხსაცმელი', 'ავტომობილი', 'ორსული ქალი',
@@ -59,38 +49,38 @@ export default function DreamsScreen() {
     const { colors } = useAppTheme();
 
     const [selectedLetter, setSelectedLetter] = useState<string>('ა');
-    const [selectedDream, setSelectedDream] = useState<{ word: string; meaning: string } | null>(null);
+    // 🔴 3. აქაც ვუთითებთ ტიპს
+    const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // 🔴 ScrollView-ს რეფერენსი და სექციის Y კოორდინატი
     const scrollViewRef = useRef<ScrollView>(null);
     const [wordsSectionY, setWordsSectionY] = useState<number>(0);
 
     // ფილტრაციის ლოგიკა
-    const getFilteredWords = () => {
+    const getFilteredWords = (): DreamItem[] => {
         if (searchQuery.trim().length > 0) {
-            return DREAM_DICTIONARY.filter(item => 
+            // 🔴 4. item-ს ვუწერთ : DreamItem
+            return DREAM_DICTIONARY.filter((item: DreamItem) => 
                 item.word.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
-        return DREAM_DICTIONARY.filter(item => item.word.startsWith(selectedLetter));
+        return DREAM_DICTIONARY.filter((item: DreamItem) => item.word.startsWith(selectedLetter));
     };
 
     const displayWords = getFilteredWords();
 
     const handleWordClick = (word: string) => {
-        const dreamObj = DREAM_DICTIONARY.find(d => d.word === word) || { 
+        // 🔴 5. d-ს ვუწერთ : DreamItem
+        const dreamObj = DREAM_DICTIONARY.find((d: DreamItem) => d.word === word) || { 
             word, 
             meaning: 'ამ სიზმრის დეტალური განმარტება მალე დაემატება ბაზაში.' 
         };
         setSelectedDream(dreamObj);
     };
 
-    // 🔴 ასოზე დაჭერისას ანიმაციურად ჩასქროლვა
     const handleLetterPress = (letter: string) => {
         setSelectedLetter(letter);
         if (scrollViewRef.current && wordsSectionY > 0) {
-            // მცირე დაყოვნება, რომ რენდერი მოესწროს და ზუსტად ჩამოწიოს
             setTimeout(() => {
                 scrollViewRef.current?.scrollTo({ y: wordsSectionY - 20, animated: true });
             }, 100);
@@ -131,7 +121,7 @@ export default function DreamsScreen() {
             </View>
 
             <ScrollView 
-                ref={scrollViewRef} // 🔴 მივაბით რეფერენსი
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false} 
                 contentContainerStyle={styles.mainScroll}
             >
@@ -150,7 +140,7 @@ export default function DreamsScreen() {
                                             isActive && { backgroundColor: colors.primary, borderColor: colors.primary },
                                             !isActive && { backgroundColor: colors.surface, borderColor: colors.border }
                                         ]}
-                                        onPress={() => handleLetterPress(letter)} // 🔴 ახალი ფუნქცია ანიმაციისთვის
+                                        onPress={() => handleLetterPress(letter)}
                                         activeOpacity={0.7}
                                     >
                                         <Text style={[
@@ -183,13 +173,14 @@ export default function DreamsScreen() {
                 {(searchQuery.length > 0 || displayWords.length > 0 || searchQuery.trim().length === 0) && (
                     <View 
                         style={styles.wordsList}
-                        onLayout={(event) => setWordsSectionY(event.nativeEvent.layout.y)} // 🔴 ვინახავთ Y პოზიციას, სადაც უნდა ჩამოსქროლოს
+                        onLayout={(event) => setWordsSectionY(event.nativeEvent.layout.y)} 
                     >
                         {searchQuery.length > 0 && <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>ძიების შედეგები:</Text>}
                         {searchQuery.length === 0 && <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>სიტყვები ასოზე: "{selectedLetter}"</Text>}
                         
                         {displayWords.length > 0 ? (
-                            displayWords.map((item, index) => (
+                            // 🔴 6. აქაც ვუთითებთ ტიპებს (item: DreamItem, index: number)
+                            displayWords.map((item: DreamItem, index: number) => (
                                 <TouchableOpacity
                                     key={index}
                                     style={[styles.wordCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
