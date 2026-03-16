@@ -4,18 +4,18 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  LayoutAnimation,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View
+    Animated,
+    Dimensions,
+    LayoutAnimation,
+    Modal,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
 } from 'react-native';
 
 import { supabase } from '../../lib/supabase';
@@ -23,12 +23,10 @@ import { useAppTheme } from '../../lib/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
-// 🔴 ანდროიდზე ანიმაციისთვის საჭიროა ეს ხაზი (აკორდეონის ჩამოშლისთვის)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// 🔴 5 კატეგორია პროგნოზებისთვის
 const getForecastTopics = (colors: any) => [
     { id: 'love', title: 'სიყვარული', icon: 'heart', color: colors.status?.error || '#FF3366' },
     { id: 'career', title: 'კარიერა', icon: 'briefcase', color: colors.primary },
@@ -43,15 +41,16 @@ export default function HomeScreen() {
 
     const [userData, setUserData] = useState<any>(null);
     const [horoscope, setHoroscope] = useState<any>(null);
+    const [detailedForecast, setDetailedForecast] = useState<any>(null); // 🟢 ახალი მონაცემებისთვის
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // 🔴 ახალი სთეითები პროგნოზებისთვის
     const [forecastType, setForecastType] = useState<'weekly' | 'monthly'>('weekly');
     const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const glow = useRef(new Animated.Value(0)).current;
+    const contentOpacity = useRef(new Animated.Value(0)).current; // 🟢 Bug Fix ანდროიდისთვის
 
     useEffect(() => {
         fetchInitialData();
@@ -64,6 +63,13 @@ export default function HomeScreen() {
         ).start();
     }, []);
 
+    // 🟢 როცა მომხმარებელი ცვლის "კვირის/თვის" ტაბს
+    useEffect(() => {
+        if (userData?.zodiac_sign) {
+            fetchDetailedForecast(userData.zodiac_sign, forecastType);
+        }
+    }, [forecastType, userData]);
+
     const fetchInitialData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -75,23 +81,54 @@ export default function HomeScreen() {
                 setHoroscope(horo);
             }
         } catch (error) {
-            console.log('Error:', error);
+            console.log('Error fetching initial data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    // 🔴 ფუნქცია, რომელიც ხსნის/კეტავს აკორდეონს ანიმაციით
-    const toggleTopic = (id: string) => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setExpandedTopic(prev => prev === id ? null : id);
+    const fetchDetailedForecast = async (sign: string, type: string) => {
+        try {
+            const { data } = await supabase
+                .from('detailed_forecasts')
+                .select('*')
+                .eq('sign', sign)
+                .eq('type', type)
+                .single();
+            setDetailedForecast(data);
+        } catch (error) {
+            console.log('Error fetching detailed forecast:', error);
+        }
     };
 
-    // 🔴 ტექსტის დინამიური გენერატორი (სანამ ბაზაში რეალურ ველებს ჩაამატებ)
-    const getForecastText = (topicTitle: string) => {
-        const timeFrame = forecastType === 'weekly' ? 'ამ კვირაში' : 'ამ თვეში';
-        // აქ შეგიძლია მერე `horoscope`-ის ველები ჩასვა (მაგ: horoscope.weekly_love)
-        return `ვარსკვლავები გიწინასწარმეტყველებენ, რომ ${timeFrame} შენი ${topicTitle} იქნება საკმაოდ საინტერესო. ეცადე მეტი ყურადღება მიაქციო დეტალებს და ენდო შინაგან ინტუიციას.`;
+    const toggleTopic = (id: string) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        if (expandedTopic === id) {
+            setExpandedTopic(null);
+            contentOpacity.setValue(0);
+        } else {
+            setExpandedTopic(id);
+            // 🟢 Smooth fade-in ანიმაცია
+            Animated.timing(contentOpacity, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+            }).start();
+        }
+    };
+
+    const getForecastText = (topicId: string) => {
+        if (!detailedForecast) return "ვარსკვლავები ამჟამად ამუშავებენ პროგნოზს...";
+        
+        const fieldMap: any = {
+            love: detailedForecast.love_text,
+            career: detailedForecast.career_text,
+            health: detailedForecast.health_text,
+            finance: detailedForecast.finance_text,
+            sexual: detailedForecast.sexual_text,
+        };
+        
+        return fieldMap[topicId] || `ამ პერიოდისთვის ${topicId} სფეროში განსაკუთრებული ცვლილებები არ იკვეთება.`;
     };
 
     const hour = new Date().getHours();
@@ -108,7 +145,7 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <View>
                         <Text style={[styles.dateText, { color: colors.primary }]}>{new Date().toLocaleDateString('ka-GE', { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
-                        <Text style={[styles.greetingText, { color: colors.textMain }]}>{greeting}, {userData?.full_name || 'უჩა'} ✨</Text>
+                        <Text style={[styles.greetingText, { color: colors.textMain }]}>{greeting}, {userData?.full_name || 'მომხმარებელო'} ✨</Text>
                     </View>
                     <TouchableOpacity style={[styles.profileButton, { borderColor: colors.primary }]}>
                         <Image source={{ uri: userData?.avatar_url || 'https://images.unsplash.com/photo-1532968961962-810cb2cece38?q=80&w=200' }} style={styles.profileImage} />
@@ -137,7 +174,6 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </Animated.View>
 
-                {/* 🔴 Forecasts Section (ახალი აკორდეონი) */}
                 <Text style={[styles.sectionTitle, { color: colors.textMain }]}>პროგნოზები</Text>
                 
                 {/* Weekly / Monthly Toggle */}
@@ -182,13 +218,12 @@ export default function HomeScreen() {
                                     />
                                 </TouchableOpacity>
 
-                                {/* 🔴 ჩამოსაშლელი ტექსტი */}
                                 {isExpanded && (
-                                    <View style={styles.accordionContent}>
+                                    <Animated.View style={[styles.accordionContent, { opacity: contentOpacity }]}>
                                         <Text style={[styles.accordionText, { color: colors.textMuted }]}>
-                                            {getForecastText(topic.title)}
+                                            {getForecastText(topic.id)}
                                         </Text>
-                                    </View>
+                                    </Animated.View>
                                 )}
                             </View>
                         );
@@ -211,11 +246,11 @@ export default function HomeScreen() {
                             <View style={styles.luckyRow}>
                                 <View style={[styles.luckyItem, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={[styles.luckyLabel, { color: colors.textMuted }]}>იღბლიანი რიცხვი</Text>
-                                    <Text style={[styles.luckyVal, { color: colors.primary }]}>{horoscope?.lucky_number || '7'}</Text>
+                                    <Text style={[styles.luckyVal, { color: colors.primary }]}>{detailedForecast?.lucky_number || '...'}</Text>
                                 </View>
                                 <View style={[styles.luckyItem, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={[styles.luckyLabel, { color: colors.textMuted }]}>დღის ფერი</Text>
-                                    <Text style={[styles.luckyVal, { color: colors.primary }]}>{horoscope?.lucky_color || 'ლურჯი'}</Text>
+                                    <Text style={[styles.luckyVal, { color: colors.primary, fontSize: 16 }]}>{detailedForecast?.lucky_color || '...'}</Text>
                                 </View>
                             </View>
 
@@ -241,6 +276,7 @@ export default function HomeScreen() {
     );
 }
 
+// ... (სტილები უცვლელია)
 const styles = StyleSheet.create({
     container: { flex: 1 },
     scrollContent: { paddingBottom: 100 },
@@ -265,7 +301,6 @@ const styles = StyleSheet.create({
     sectionTitle: { fontSize: 20, fontWeight: '800', marginTop: 35, marginBottom: 20, paddingHorizontal: 24 },
     glassContainer: { marginHorizontal: 24, padding: 10, borderRadius: 32, borderWidth: 1 },
     
-    // 🔴 ახალი სტილები პროგნოზებისთვის
     toggleContainer: { flexDirection: 'row', marginHorizontal: 24, marginBottom: 15, borderRadius: 20, borderWidth: 1, padding: 4 },
     toggleBtn: { flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center' },
     toggleText: { fontSize: 14, fontWeight: '700' },

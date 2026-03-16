@@ -20,24 +20,27 @@ import { useAppTheme } from '../../lib/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
+// 🔴 დამატებულია route-ები, რომ გაშლების გვერდები ავამუშავოთ
 const getSpreads = (colors: any) => [
-  { id: '1', title: 'დღის ენერგია', cards: 1, icon: 'sunny', color: colors.primary, desc: 'მოკლე მიმოხილვა დღევანდელი დღისთვის' },
-  { id: '2', title: 'წარსული & მომავალი', cards: 3, icon: 'time', color: colors.primary, desc: 'კლასიკური გაშლა სიტუაციის შესაფასებლად' },
-  { id: '3', title: 'სიყვარული', cards: 5, icon: 'heart', color: colors.status?.error || '#FF3366', desc: 'პარტნიორული კავშირების ანალიზი' },
-  { id: '4', title: 'კარიერა', cards: 4, icon: 'briefcase', color: colors.primary, desc: 'პროფესიული გზა და ფინანსები' },
+  { id: '1', title: 'დღის ენერგია', cards: 1, icon: 'sunny', color: colors.primary, desc: 'მოკლე მიმოხილვა დღევანდელი დღისთვის', route: '/spread-energy' },
+  { id: '2', title: 'წარსული & მომავალი', cards: 3, icon: 'time', color: colors.primary, desc: 'კლასიკური გაშლა სიტუაციის შესაფასებლად', route: '/spread-time' },
+  { id: '3', title: 'სიყვარული', cards: 5, icon: 'heart', color: colors.status?.error || '#FF3366', desc: 'პარტნიორული კავშირების ანალიზი', route: '/spread-love' },
+  { id: '4', title: 'კარიერა', cards: 4, icon: 'briefcase', color: colors.primary, desc: 'პროფესიული გზა და ფინანსები', route: '/spread-career' },
 ];
 
-// 🔴 ახალი ფუნქციების სია
+// 🔴 სიზმრები ამოღებულია აქედან, რადგან ცალკე დიდ ბანერად დავსვით ზევით
 const getExtraFeatures = (colors: any) => [
-  { id: 'divination', title: 'მკითხაობა', icon: 'color-wand', color: '#B829EA', desc: '4 კაროლი, ნუმეროლოგია, გვირილა, უნივერსალური და სხვა...', route: '/divination' },
-  { id: 'dreams', title: 'სიზმრების ახსნა', icon: 'moon', color: '#00E5FF', desc: 'ანბანური საძიებელი და სიზმრების დეტალური განმარტება', route: '/dreams' },
-  { id: 'haircut', title: 'თმის შეჭრის კალენდარი', icon: 'cut', color: '#FF3366', desc: 'მთვარის ფაზების მიხედვით თმის შეჭრის საუკეთესო დღეები', route: '/haircut' },
+  { id: 'four-kings', title: '4 კაროლი', icon: 'people', color: '#B829EA', desc: 'რას გრძნობს 4 სხვადასხვა ადამიანი თქვენზე', route: '/four-kings' },
+  { id: 'numerology', title: 'ნუმეროლოგია', icon: 'calculator', color: '#FF9F0A', desc: 'რიცხვების მაგია და ბედის კოდი', route: '/numerology' },
+  { id: 'daisy', title: 'გვირილა', icon: 'flower-outline', color: '#32ADE6', desc: 'უყვარვარ, არ ვუყვარვარ... გაიგე სიმართლე', route: '/daisy' },
+  { id: 'universal', title: 'უნივერსალური', icon: 'planet', color: '#FF375F', desc: 'სწრაფი პასუხები თქვენს ნებისმიერ კითხვაზე', route: '/universal' },
+  { id: 'haircut', title: 'თმის შეჭრის კალენდარი', icon: 'cut', color: '#FF3366', desc: 'მთვარის ფაზები და საუკეთესო დღეები', route: '/haircut' },
 ];
 
 export default function TarotScreen() {
   const { colors, isPrime } = useAppTheme(); 
   const SPREADS = getSpreads(colors);
-  const EXTRA_FEATURES = getExtraFeatures(colors); // 🔴 ახალი ობიექტი
+  const EXTRA_FEATURES = getExtraFeatures(colors);
 
   const [isRevealed, setIsRevealed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -171,10 +174,40 @@ export default function TarotScreen() {
           </Animated.View>
         </View>
 
+        {/* 🔴 სიზმრების ახალი, გამორჩეული ბანერი დღის არკანის ქვეშ */}
+        <TouchableOpacity 
+          style={[styles.dreamsBanner, { borderColor: colors.border, backgroundColor: colors.surface }]}
+          activeOpacity={0.9}
+          onPress={() => router.push('/dreams')}
+        >
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?q=80&w=600&auto=format&fit=crop' }} 
+            style={styles.dreamsBgImg} 
+          />
+          <LinearGradient colors={[`${colors.primary}40`, colors.surface]} style={StyleSheet.absoluteFill} />
+          
+          <View style={styles.dreamsContent}>
+            <View style={[styles.dreamsIconBox, { backgroundColor: `${colors.primary}20` }]}>
+              <Ionicons name="moon" size={26} color={colors.primary} />
+            </View>
+            <View style={styles.dreamsTextWrapper}>
+              <Text style={[styles.dreamsTitle, { color: colors.textMain }]}>სიზმრების ახსნა</Text>
+              <Text style={[styles.dreamsDesc, { color: colors.textMuted }]}>ამოიცანი რას გეუბნება ქვეცნობიერი</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={colors.textMuted} />
+          </View>
+        </TouchableOpacity>
+
+
         <Text style={[styles.sectionTitle, { color: colors.textMain }]}>პოპულარული გაშლები</Text>
         <View style={styles.grid}>
           {SPREADS.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.gridItem} onPress={() => !isPrime && router.push('/subscription')}>
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.gridItem} 
+              // 🔴 აქ უკვე პირდაპირ შესაბამის ფაილში გადავა (მაგ: /spread-love)
+              onPress={() => router.push(item.route as any)}
+            >
               <View style={[styles.gridGradient, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={[styles.iconBox, { backgroundColor: `${item.color}15` }]}>
                   <Ionicons name={item.icon as any} size={18} color={item.color} />
@@ -183,14 +216,13 @@ export default function TarotScreen() {
                 <Text style={[styles.spreadDesc, { color: colors.textMuted }]} numberOfLines={2}>{item.desc}</Text>
                 <View style={styles.gridFooter}>
                   <Text style={[styles.gridCards, { color: colors.primary }]}>{item.cards} ბარათი</Text>
-                  <Ionicons name={!isPrime ? "lock-closed" : "chevron-forward"} size={14} color={colors.textMuted} />
+                  <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
                 </View>
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* 🔴 ახალი სექცია: 3 ფანჯარა */}
         <Text style={[styles.sectionTitle, { color: colors.textMain, marginTop: 25 }]}>მისტიკური პრაქტიკები</Text>
         <View style={styles.extraFeaturesContainer}>
           {EXTRA_FEATURES.map((feature) => (
@@ -227,8 +259,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 120 },
   sectionTitle: { fontSize: 20, fontWeight: '800', paddingHorizontal: 24, marginBottom: 16, marginTop: 5 },
   
-  // 🔴 დაპატარავებული არკანის ბარათი
-  cardContainer: { height: 280, marginHorizontal: 24, marginBottom: 25 },
+  cardContainer: { height: 280, marginHorizontal: 24, marginBottom: 15 },
   flipCard: { width: '100%', height: '100%', backfaceVisibility: 'hidden', position: 'absolute' },
   flipCardBack: { backfaceVisibility: 'hidden' },
   cardCover: { flex: 1, borderRadius: 28, overflow: 'hidden', borderWidth: 1.5 },
@@ -247,8 +278,16 @@ const styles = StyleSheet.create({
   keywords: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
   description: { fontSize: 12, lineHeight: 18, opacity: 0.8 },
   refreshIcon: { padding: 5 },
+
+  // 🔴 სიზმრების ახალი ბანერის სტილები
+  dreamsBanner: { height: 100, marginHorizontal: 24, marginBottom: 25, borderRadius: 24, overflow: 'hidden', borderWidth: 1.5, justifyContent: 'center' },
+  dreamsBgImg: { ...StyleSheet.absoluteFillObject, opacity: 0.2 },
+  dreamsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, width: '100%' },
+  dreamsIconBox: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  dreamsTextWrapper: { flex: 1 },
+  dreamsTitle: { fontSize: 18, fontWeight: '900', marginBottom: 4 },
+  dreamsDesc: { fontSize: 12, fontWeight: '600' },
   
-  // 🔴 დაპატარავებული გაშლების გრიდი
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
   gridItem: { width: '50%', padding: 6 },
   gridGradient: { padding: 14, borderRadius: 20, borderWidth: 1, minHeight: 140 },
@@ -258,7 +297,6 @@ const styles = StyleSheet.create({
   gridFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' },
   gridCards: { fontSize: 11, fontWeight: '700' },
 
-  // 🔴 ახალი 3 ფანჯრის სტილები
   extraFeaturesContainer: { paddingHorizontal: 24, gap: 12 },
   featureCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, borderWidth: 1 },
   featureIconBox: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 16 },

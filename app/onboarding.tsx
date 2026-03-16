@@ -22,6 +22,22 @@ import { supabase } from '../lib/supabase';
 
 const { width, height } = Dimensions.get('window');
 
+// 📍 ქალაქების კოორდინატები Swiss Ephemeris-ისთვის
+const CITY_COORDINATES: Record<string, { lat: number, lng: number }> = {
+  'თბილისი': { lat: 41.7151, lng: 44.8271 },
+  'ბათუმი': { lat: 41.6168, lng: 41.6367 },
+  'ქუთაისი': { lat: 42.2662, lng: 42.7180 },
+  'რუსთავი': { lat: 41.5472, lng: 45.0007 },
+  'გორი': { lat: 41.9842, lng: 44.1158 },
+  'ზუგდიდი': { lat: 42.5088, lng: 41.8709 },
+  'ფოთი': { lat: 42.1462, lng: 41.6720 },
+  'თელავი': { lat: 41.9192, lng: 45.4731 },
+  'ახალციხე': { lat: 41.6392, lng: 42.9826 },
+  'ოზურგეთი': { lat: 41.9269, lng: 42.0004 },
+  'ცხინვალი': { lat: 42.2257, lng: 43.9702 },
+  'სოხუმი': { lat: 43.0034, lng: 41.0153 }
+};
+
 // ზოდიაქოს ნიშნის გამოთვლის ფუნქცია
 const getZodiacSign = (dateString: string) => {
   const date = new Date(dateString);
@@ -74,7 +90,6 @@ export default function OnboardingScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
-  // განახლებული ფუნქცია: ინახავს მონაცემებს Supabase-ში და მიდის Home-ზე
   const handleNext = async () => {
     Keyboard.dismiss();
 
@@ -85,6 +100,9 @@ export default function OnboardingScreen() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         const calculatedZodiac = getZodiacSign(formData.birthDate);
+        
+        // კოორდინატების ამოღება არჩეული ქალაქის მიხედვით
+        const coords = CITY_COORDINATES[formData.birthPlace] || { lat: 41.7151, lng: 44.8271 };
 
         if (user) {
           const { error } = await supabase
@@ -96,18 +114,19 @@ export default function OnboardingScreen() {
               birth_date: formData.birthDate,
               birth_time: formData.birthTime,
               birth_place: formData.birthPlace,
+              latitude: coords.lat,
+              longitude: coords.lng,
               goal: formData.goal,
               zodiac_sign: calculatedZodiac,
+              updated_at: new Date(),
             });
 
           if (error) throw error;
         }
         
-        // წარმატების შემთხვევაში გადავდივართ პირდაპირ home ეკრანზე
         router.replace('/(tabs)/home');
       } catch (err) {
         console.error('შეცდომა პროფილის შენახვისას:', err);
-        // შეცდომის მიუხედავადაც ვუშვებთ თაბებში, რომ არ გაიჭედოს
         router.replace('/(tabs)/home');
       }
     }
@@ -254,7 +273,6 @@ export default function OnboardingScreen() {
     >
       <StatusBar barStyle="light-content" backgroundColor="#070711" />
       
-      {/* ღრმა კოსმოსური ფონი */}
       <LinearGradient colors={['#070711', '#141028', '#0A0A1A']} style={StyleSheet.absoluteFill} />
 
       <View style={styles.topGlow} />

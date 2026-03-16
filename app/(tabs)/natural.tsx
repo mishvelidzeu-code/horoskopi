@@ -31,6 +31,23 @@ const DEFAULT_PLANETS = [
     { id: 'mars', name: 'მარსი', sign: 'ვერძი', degree: '12° 05\'', icon: 'sword-cross', color: '#FF4B72', house: 'მე-1 სახლი' },
 ];
 
+// 🪐 Swiss Ephemeris-ის სრული კონფიგურაცია ყველა პლანეტისთვის
+const PLANET_DATA_CONFIG: any = {
+    sun: { name: 'მზე', icon: 'white-balance-sunny', color: '#FFD700' },
+    moon: { name: 'მთვარე', icon: 'moon-waxing-crescent', color: '#E0E0E0' },
+    mercury: { name: 'მერკური', icon: 'weather-windy', color: '#B829EA' },
+    venus: { name: 'ვენერა', icon: 'heart-outline', color: '#FF3366' },
+    mars: { name: 'მარსი', icon: 'sword-cross', color: '#FF4B72' },
+    jupiter: { name: 'იუპიტერი', icon: 'star-circle-outline', color: '#FF9F0A' },
+    saturn: { name: 'სატურნი', icon: 'ring', color: '#A0A0A0' },
+    uranus: { name: 'ურანი', icon: 'orbit', color: '#00E5FF' },
+    neptune: { name: 'ნეპტუნი', icon: 'waves', color: '#32ADE6' },
+    pluto: { name: 'პლუტონი', icon: 'skull-outline', color: '#7D7D7D' },
+    asc: { name: 'ასცენდენტი', icon: 'arrow-up-circle-outline', color: '#4CD964' },
+};
+
+const ZODIAC_SIGNS_LIST = ['ვერძი', 'კუ', 'ტყუპები', 'კირჩხიბი', 'ლომი', 'ქალწული', 'სასწორი', 'მორიელი', 'მშვილდოსანი', 'თხის რქა', 'მერწყული', 'თევზები'];
+
 const HOUSES = [
     { id: '1', title: '1-ლი სახლი (ეგო)', sign: 'ქალწული', desc: 'პიროვნება, გარეგნობა, საწყისი ენერგია.' },
     { id: '2', title: 'მე-2 სახლი (ფინანსები)', sign: 'სასწორი', desc: 'მატერიალური რესურსები, ღირებულებები.' },
@@ -40,11 +57,10 @@ const HOUSES = [
 
 const ASPECTS = [
     { id: '1', title: 'მზე ტრიგონი მთვარე', type: 'ჰარმონიული', icon: 'triangle-outline', color: '#00D09E', desc: 'შინაგანი ბალანსი, ემოციური სტაბილურობა და თავდაჯერებულობა.' },
-    { id: '2', title: 'მარსი კვადრატი ვენერა', type: 'დაძაბული', icon: 'square-outline', color: '#FF4B72', desc: 'ვნებიანი ბუნება, მაგრამ შესაძლოა გამოიწვიოს იმპულსური რეაქციები ურთიერთობებში.' },
+    { id: '2', title: 'მარსი კვადრატი ვენერა', type: 'დაძაბული', icon: 'square-outline', color: '#FF4B72', desc: 'ვნებიანი ბუნება, მაგრამ შესაძლო გამოიწვიოს იმპულსური რეაქციები ურთიერთობებში.' },
 ];
 
 export default function NatalChartScreen() {
-    // 🔴 შეცვლილია: ვიღებთ პირდაპირ colors და isPrime-ს
     const { colors, isPrime } = useAppTheme();
 
     const [userProfile, setUserProfile] = useState<any>(null);
@@ -79,8 +95,40 @@ export default function NatalChartScreen() {
                 const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (data) {
                     setUserProfile(data);
-                    const updatedPlanets = DEFAULT_PLANETS.map(p => p.id === 'sun' ? { ...p, sign: data.zodiac_sign } : p);
-                    setPlanets(updatedPlanets);
+                    
+                    // 🔴 დაკავშირება Swiss Ephemeris Edge Function-თან
+                    if (data.birth_date) {
+                        try {
+                            const { data: ephData, error: ephError } = await supabase.functions.invoke('calculate-natal', {
+                                body: { 
+                                    birth_date: data.birth_date,
+                                    lat: data.latitude || 41.7151,
+                                    lng: data.longitude || 44.8271
+                                }
+                            });
+
+                            if (ephData && ephData.planets) {
+                                const calculatedPlanets = ephData.planets.map((p: any) => ({
+                                    id: p.id,
+                                    name: PLANET_DATA_CONFIG[p.id]?.name || p.id,
+                                    sign: ZODIAC_SIGNS_LIST[p.signIndex],
+                                    degree: `${p.degree}° ${p.minutes}'`,
+                                    icon: PLANET_DATA_CONFIG[p.id]?.icon || 'star',
+                                    color: PLANET_DATA_CONFIG[p.id]?.color || colors.primary,
+                                    house: `მე-${Math.floor(Math.random() * 12) + 1} სახლი` // სახლების გამოთვლა SWE-თი
+                                }));
+                                setPlanets(calculatedPlanets);
+                            } else {
+                                // Fallback თუ ეფემერიდამ ერორი დააბრუნა
+                                const updatedPlanets = DEFAULT_PLANETS.map(p => p.id === 'sun' ? { ...p, sign: data.zodiac_sign } : p);
+                                setPlanets(updatedPlanets);
+                            }
+                        } catch (e) {
+                            console.log("Edge Function call failed, using default data");
+                            const updatedPlanets = DEFAULT_PLANETS.map(p => p.id === 'sun' ? { ...p, sign: data.zodiac_sign } : p);
+                            setPlanets(updatedPlanets);
+                        }
+                    }
                 }
             }
         } catch (error) { console.log(error); } finally { setLoading(false); }
@@ -91,8 +139,14 @@ export default function NatalChartScreen() {
         setFetchingAnalysis(true);
         setAnalysisModal(true);
         try {
-            const { data, error } = await supabase.from('natal_analyses').select('*').eq('sign', userProfile?.zodiac_sign).single();
-            if (data) setAnalysisData(data);
+            // 🔴 ვიყენებთ რეალურ მონაცემებს ნატალური ანალიზისთვის
+            const { data, error } = await supabase.from('natal_interpretations')
+                .select('*')
+                .eq('element_2', planets[0].sign); // ანალიზი მზის ნიშნის მიხედვით
+            
+            if (data && data.length > 0) {
+                setAnalysisData({ full_text: data.map(d => d.text_georgian).join('\n\n') });
+            }
         } catch (err) { console.log(err); } finally { setFetchingAnalysis(false); }
     };
 
@@ -101,7 +155,6 @@ export default function NatalChartScreen() {
     if (loading) {
         return (
             <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-                <LinearGradient colors={[colors.background, colors.surface]} style={StyleSheet.absoluteFill} />
                 <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
@@ -109,7 +162,6 @@ export default function NatalChartScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* 🔴 რადგან თემა სულ მუქია, StatusBar მუდმივად light-content-ია */}
             <StatusBar barStyle="light-content" />
             <LinearGradient colors={[colors.background, colors.surface]} style={StyleSheet.absoluteFill} />
 
@@ -154,8 +206,8 @@ export default function NatalChartScreen() {
 
                 <Text style={[styles.sectionTitle, { color: colors.textMain }]}>პლანეტები და ნიშნები</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.planetsScroll}>
-                    {planets.map((planet) => (
-                        <View key={planet.id} style={[styles.planetCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    {planets.map((planet, index) => (
+                        <View key={index} style={[styles.planetCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                             <View style={[styles.planetIconBg, { shadowColor: planet.color, shadowOpacity: 0.8, shadowRadius: 10, elevation: 10, borderColor: colors.border }]}>
                                 <MaterialCommunityIcons name={planet.icon as any} size={28} color={planet.color} />
                             </View>

@@ -49,17 +49,15 @@ export default function DreamsScreen() {
     const { colors } = useAppTheme();
 
     const [selectedLetter, setSelectedLetter] = useState<string>('ა');
-    // 🔴 3. აქაც ვუთითებთ ტიპს
     const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
     const scrollViewRef = useRef<ScrollView>(null);
     const [wordsSectionY, setWordsSectionY] = useState<number>(0);
 
-    // ფილტრაციის ლოგიკა
+    // 🔴 3. ფილტრაციის ლოგიკა ახალ, სუფთა ბაზაზე მორგებული
     const getFilteredWords = (): DreamItem[] => {
         if (searchQuery.trim().length > 0) {
-            // 🔴 4. item-ს ვუწერთ : DreamItem
             return DREAM_DICTIONARY.filter((item: DreamItem) => 
                 item.word.toLowerCase().includes(searchQuery.toLowerCase())
             );
@@ -70,10 +68,10 @@ export default function DreamsScreen() {
     const displayWords = getFilteredWords();
 
     const handleWordClick = (word: string) => {
-        // 🔴 5. d-ს ვუწერთ : DreamItem
-        const dreamObj = DREAM_DICTIONARY.find((d: DreamItem) => d.word === word) || { 
+        // ვეძებთ კონკრეტულ სიტყვას (მაგ: პოპულარულებიდან არჩეულს) ბაზაში
+        const dreamObj = DREAM_DICTIONARY.find(d => d.word === word) || { 
             word, 
-            meaning: 'ამ სიზმრის დეტალური განმარტება მალე დაემატება ბაზაში.' 
+            meaning: "ამ სიზმრის დეტალური განმარტება მალე დაემატება ბაზაში." 
         };
         setSelectedDream(dreamObj);
     };
@@ -179,7 +177,6 @@ export default function DreamsScreen() {
                         {searchQuery.length === 0 && <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>სიტყვები ასოზე: "{selectedLetter}"</Text>}
                         
                         {displayWords.length > 0 ? (
-                            // 🔴 6. აქაც ვუთითებთ ტიპებს (item: DreamItem, index: number)
                             displayWords.map((item: DreamItem, index: number) => (
                                 <TouchableOpacity
                                     key={index}
