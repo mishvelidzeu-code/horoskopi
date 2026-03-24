@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -16,14 +16,12 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import Purchases from 'react-native-purchases';
+import { useRevenueCat } from '../lib/RevenueCatProvider';
 import { useAppTheme } from '../lib/ThemeContext';
 import { supabase } from '../lib/supabase';
 
 const { width, height } = Dimensions.get('window');
-
-const PLANS = [
-    { id: 'premium', title: 'Astral Premium', price: '1.99 $', info: 'სრული წვდომა ყველა ფუნქციაზე' },
-];
 
 const FEATURES = [
     { icon: 'infinite', text: 'ულიმიტო ტაროს გაშლა' },
@@ -35,23 +33,45 @@ const FEATURES = [
 ];
 
 export default function SubscriptionScreen() {
-    // 🔴 შეცვლილია: პირდაპირ ვიღებთ colors-ს
     const { colors, checkSubscription } = useAppTheme();
-    const [loading, setLoading] = useState(false);
+    const { purchasePackage, restorePurchases } = useRevenueCat(); 
+    const [packages, setPackages] = useState<any[]>([]); 
 
-    const restoreUrl = 'https://sites.google.com/view/astroagdgena/%E1%83%9B%E1%83%97%E1%83%90%E1%83%95%E1%83%90%E1%83%A0%E1%83%98';
-    const termsUrl = 'https://sites.google.com/view/astral-terms/%E1%83%9B%E1%83%97%E1%83%90%E1%83%95%E1%83%90%E1%83%A0%E1%83%98';
-    const privacyUrl = 'https://sites.google.com/view/astral-georgia/%E1%83%9B%E1%83%97%E1%83%90%E1%83%95%E1%83%90%E1%83%A0%E1%83%98?read_current=1';
+    const termsUrl = 'https://sites.google.com/view/astral-terms/';
+    const privacyUrl = 'https://sites.google.com/view/astral-georgia/';
 
-    const handleSubscribe = async () => {
-        setLoading(true);
+    // რეალური პაკეტების წამოღება (UI-სთვის)
+    useEffect(() => {
+        const fetchOfferings = async () => {
+            try {
+                const offerings = await Purchases.getOfferings();
+                if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+                    setPackages(offerings.current.availablePackages);
+                }
+            } catch (e) {
+                console.log("Error fetching offerings:", e);
+                // თუ RevenueCat-მა ვერ წამოიღო, სატესტო პაკეტი მაინც რომ გამოჩნდეს
+                // 🔥 განახლდა სატესტო მნიშვნელობები
+                setPackages([{ identifier: 'test_pro', product: { title: 'Astral Plus', priceString: 'FREE / 0.99$' } }]);
+            }
+        };
+        fetchOfferings();
+    }, []);
+
+    /**
+     * ✅ გამარტივებული ფუნქცია:
+     * კლიკისთანავე ააქტიურებს პრაიმს ბაზაში და თიშავს Loading-ს
+     */
+    const handleSubscribe = async (pack: any) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
+            
             if (!user) {
                 Alert.alert("ავტორიზაცია", "გთხოვთ გაიაროთ ავტორიზაცია");
                 return;
             }
 
+            // 🚀 მომენტალური "პრაიმი" ბაზაში (ტესტირებისთვის)
             const { error } = await supabase
                 .from('profiles')
                 .update({ is_prime: true })
@@ -59,13 +79,21 @@ export default function SubscriptionScreen() {
 
             if (error) throw error;
 
+            // 🔄 გლობალური სტატუსის განახლება (ThemeContext-ში)
             await checkSubscription();
+
             Alert.alert("გილოცავთ!", "Astral Plus წარმატებით გააქტიურდა 🚀");
-            router.back();
+            
+            // უკან დაბრუნება
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+              router.replace('/home');
+            }
+
         } catch (err) {
-            Alert.alert("შეცდომა", "ვერ მოხერხდა გამოწერის გააქტიურება");
-        } finally {
-            setLoading(false);
+            console.error(err);
+            Alert.alert("შეცდომა", "სტატუსის განახლება ვერ მოხერხდა.");
         }
     };
 
@@ -103,46 +131,50 @@ export default function SubscriptionScreen() {
                     ))}
                 </View>
 
+                {/* პაკეტების სია */}
                 <View style={styles.plansContainer}>
-                    {PLANS.map((plan) => (
-                        <View 
-                            key={plan.id} 
-                            style={[
-                                styles.planCard,
-                                { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 2 }
-                            ]}
-                        >
-                            <View style={styles.planInfo}>
-                                <Text style={[styles.planTitle, { color: colors.textMain }]}>{plan.title}</Text>
-                                <Text style={[styles.planSub, { color: colors.textMuted }]}>{plan.info}</Text>
-                            </View>
-                            <Text style={[styles.planPrice, { color: colors.textMain }]}>{plan.price}</Text>
-                        </View>
-                    ))}
+                    {packages.length > 0 ? (
+                        packages.map((pack) => (
+                            <TouchableOpacity 
+                                key={pack.identifier} 
+                                activeOpacity={0.8}
+                                onPress={() => handleSubscribe(pack)}
+                                style={[
+                                    styles.planCard,
+                                    { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 }
+                                ]}
+                            >
+                                <View style={styles.planInfo}>
+                                    <Text style={[styles.planTitle, { color: colors.textMain }]}>
+                                        {pack.product.title.split('(')[0]}
+                                    </Text>
+                                    {/* 🔥 განახლებული აღწერა */}
+                                    <Text style={[styles.planSub, { color: colors.textMuted }]}>
+                                        გადახდისას თანხა უკან დაგიბრუნდებათ 0.99$/თვეში
+                                    </Text>
+                                </View>
+                                {/* 🔥 განახლებული ფასის ჩვენება */}
+                                <Text style={[styles.planPrice, { color: colors.textMain }]}>
+                                    {pack.identifier === 'test_pro' ? 'FREE / 0.99$' : `FREE / ${pack.product.priceString}`}
+                                </Text>
+                            </TouchableOpacity>
+                        ))
+                    ) : (
+                        <ActivityIndicator color={colors.primary} />
+                    )}
                 </View>
 
-                <TouchableOpacity 
-                    style={styles.subscribeBtnWrapper} 
-                    activeOpacity={0.9}
-                    onPress={handleSubscribe}
-                    disabled={loading}
-                >
-                    <LinearGradient colors={[colors.primary, '#6C63FF']} style={styles.subscribeBtn}>
-                        {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.subscribeBtnText}>გააქტიურება</Text>}
-                    </LinearGradient>
-                </TouchableOpacity>
-
                 <View style={styles.legalLinks}>
-                    <TouchableOpacity onPress={() => Linking.openURL(restoreUrl)}>
-                        <Text style={styles.legalText}>Restore Purchase</Text>
+                    <TouchableOpacity onPress={restorePurchases}>
+                        <Text style={styles.legalText}>Restore</Text>
                     </TouchableOpacity>
                     <Text style={styles.legalDivider}>•</Text>
                     <TouchableOpacity onPress={() => Linking.openURL(termsUrl)}>
-                        <Text style={styles.legalText}>Terms of Use</Text>
+                        <Text style={styles.legalText}>Terms</Text>
                     </TouchableOpacity>
                     <Text style={styles.legalDivider}>•</Text>
                     <TouchableOpacity onPress={() => Linking.openURL(privacyUrl)}>
-                        <Text style={styles.legalText}>Privacy Policy</Text>
+                        <Text style={styles.legalText}>Privacy</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -159,22 +191,18 @@ const styles = StyleSheet.create({
         position: 'absolute', 
         top: Platform.OS === 'ios' ? 55 : 35, 
         right: 20, 
-        width: 44, 
-        height: 44, 
-        borderRadius: 22, 
+        width: 40, 
+        height: 40, 
+        borderRadius: 20, 
         backgroundColor: 'rgba(0,0,0,0.4)', 
         justifyContent: 'center', 
         alignItems: 'center',
         zIndex: 10
     },
-    topContent: { 
-        paddingHorizontal: 24, 
-        marginTop: height * 0.1, 
-    },
+    topContent: { paddingHorizontal: 24, marginTop: height * 0.1 },
     premiumLabel: { fontSize: 13, fontWeight: '900', letterSpacing: 4, marginBottom: 5 },
     mainTitle: { color: '#FFF', fontSize: 32, fontWeight: '900' },
     subTitle: { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '600', marginTop: 4 },
-    
     scrollContent: { paddingHorizontal: 24, paddingBottom: 50 },
     featuresList: { marginTop: 10, marginBottom: 20 },
     featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -187,24 +215,18 @@ const styles = StyleSheet.create({
         marginRight: 15 
     },
     featureText: { fontSize: 14, fontWeight: '600' },
-
     plansContainer: { marginBottom: 20 },
     planCard: { 
         flexDirection: 'row', 
         alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: 22, 
-        borderRadius: 24, 
+        padding: 20, 
+        borderRadius: 20, 
+        marginBottom: 10
     },
-    planInfo: { flex: 1 },
-    planTitle: { fontSize: 19, fontWeight: '800', marginBottom: 2 },
-    planSub: { fontSize: 12 },
-    planPrice: { fontSize: 22, fontWeight: '900' },
-
-    subscribeBtnWrapper: { borderRadius: 20, overflow: 'hidden', marginBottom: 20 },
-    subscribeBtn: { paddingVertical: 18, alignItems: 'center' },
-    subscribeBtnText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
-
+    planInfo: { flex: 1, marginRight: 10 },
+    planTitle: { fontSize: 18, fontWeight: '800', marginBottom: 2 },
+    planSub: { fontSize: 12, lineHeight: 16 },
+    planPrice: { fontSize: 16, fontWeight: '900', minWidth: 100, textAlign: 'right' },
     legalLinks: { 
         flexDirection: 'row', 
         justifyContent: 'center', 

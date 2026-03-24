@@ -17,11 +17,13 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { useAppTheme } from '../lib/ThemeContext';
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width } = Dimensions.get('window');
 
 export default function SpreadEnergyScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 დავამატეთ isPrime-ის ამოღება
 
     const [isRevealed, setIsRevealed] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -106,15 +108,24 @@ export default function SpreadEnergyScreen() {
                                 source={{ uri: card?.image_url || 'https://images.unsplash.com/photo-1607581179836-81e0507fb083?q=80&w=600&auto=format&fit=crop' }} 
                                 style={styles.fullCardImage}
                                 contentFit="cover"
+                                cachePolicy="disk"
                             />
                             
                             <View style={styles.cardInfo}>
                                 <Text style={[styles.cardName, { color: colors.textMain }]}>{card?.name}</Text>
                                 <Text style={[styles.cardSuit, { color: colors.primary }]}>{card?.arcana === 'Major' ? 'დიდი არკანი' : card?.suit}</Text>
                                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                                <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
-                                    {card?.meaning_upright}
-                                </Text>
+                                
+                                {/* 🔥 აქ დავამატეთ PrimeLock-ის ლოგიკა განმარტების ტექსტზე */}
+                                <View style={{ position: 'relative', minHeight: 120, overflow: 'hidden' }}>
+                                    <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
+                                        {card?.meaning_upright}
+                                    </Text>
+
+                                    {!isPrime && (
+                                        <PrimeLock title="განმარტება დაბლოკილია" />
+                                    )}
+                                </View>
                             </View>
                         </View>
 

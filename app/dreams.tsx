@@ -18,6 +18,8 @@ import {
 import { useAppTheme } from '../lib/ThemeContext';
 // შემოვიტანეთ ბაზა
 import { FULL_DREAM_DICTIONARY } from '../lib/dreamData';
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +48,7 @@ const POPULAR_WORDS = [
 ];
 
 export default function DreamsScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 დავამატეთ isPrime-ის ამოღება თემიდან
 
     const [selectedLetter, setSelectedLetter] = useState<string>('ა');
     const [selectedDream, setSelectedDream] = useState<DreamItem | null>(null);
@@ -225,9 +227,17 @@ export default function DreamsScreen() {
                                 {selectedDream?.word}
                             </Text>
                             <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                            <Text style={[styles.modalMeaning, { color: colors.textMuted }]}>
-                                {selectedDream?.meaning}
-                            </Text>
+                            
+                            {/* 🔥 აქ დავამატეთ დაბლოკვის ლოგიკა */}
+                            <View style={{ flex: 1, minHeight: 200 }}>
+                                <Text style={[styles.modalMeaning, { color: colors.textMuted }]}>
+                                    {selectedDream?.meaning}
+                                </Text>
+
+                                {!isPrime && (
+                                    <PrimeLock title="სიზმრის ახსნა დაბლოკილია" />
+                                )}
+                            </View>
                         </ScrollView>
 
                     </View>

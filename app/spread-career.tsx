@@ -17,6 +17,8 @@ import {
 
 import { supabase } from '../lib/supabase';
 import { useAppTheme } from '../lib/ThemeContext';
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width } = Dimensions.get('window');
 
@@ -28,7 +30,7 @@ const POSITIONS = [
 ];
 
 export default function SpreadCareerScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 ამოვიღეთ isPrime
 
     const [pickedCount, setPickedCount] = useState(0);
     const [isRevealed, setIsRevealed] = useState(false);
@@ -161,16 +163,25 @@ export default function SpreadCareerScreen() {
                                         source={{ uri: card.image_url || 'https://images.unsplash.com/photo-1607581179836-81e0507fb083?q=80&w=600&auto=format&fit=crop' }} 
                                         style={styles.realCardImage}
                                         contentFit="cover"
+                                        cachePolicy="disk"
                                     />
                                     
                                     <View style={styles.cardTextContent}>
                                         <Text style={[styles.cardName, { color: colors.textMain }]}>{card.name}</Text>
                                         <Text style={[styles.cardSuit, { color: colors.textMuted }]}>{card.arcana === 'Major' ? 'დიდი არკანი' : `მცირე არკანი • ${card.suit}`}</Text>
-                                        <ScrollView style={styles.meaningScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                                            <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
-                                                {card.meaning_upright}
-                                            </Text>
-                                        </ScrollView>
+                                        
+                                        {/* 🔥 აქ ჩავსვით დაბლოკვის ლოგიკა განმარტებაზე */}
+                                        <View style={{ flex: 1, overflow: 'hidden' }}>
+                                            <ScrollView style={styles.meaningScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                                                <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
+                                                    {card.meaning_upright}
+                                                </Text>
+                                            </ScrollView>
+
+                                            {!isPrime && (
+                                                <PrimeLock title="განმარტება დაბლოკილია" />
+                                            )}
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -221,7 +232,7 @@ const styles = StyleSheet.create({
     resultsSection: { width: '100%' },
     resultsMainTitle: { fontSize: 24, fontWeight: '900', marginBottom: 25, textAlign: 'center' },
 
-    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
+    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
     positionHeader: { marginBottom: 15 },
     positionBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 },
     positionBadgeText: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },

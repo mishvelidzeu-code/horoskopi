@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { supabase } from '../lib/supabase';
+import { clearNatalCache } from '../services/natalService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -91,46 +92,66 @@ export default function OnboardingScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const handleNext = async () => {
-    Keyboard.dismiss();
+  Keyboard.dismiss();
 
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-      flatListRef.current?.scrollToIndex({ index: currentStep + 1 });
-    } else {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const calculatedZodiac = getZodiacSign(formData.birthDate);
-        
-        // კოორდინატების ამოღება არჩეული ქალაქის მიხედვით
-        const coords = CITY_COORDINATES[formData.birthPlace] || { lat: 41.7151, lng: 44.8271 };
+  if (currentStep < STEPS.length - 1) {
+    setCurrentStep(currentStep + 1);
+    flatListRef.current?.scrollToIndex({ index: currentStep + 1 });
+  } else {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const calculatedZodiac = getZodiacSign(formData.birthDate);
 
-        if (user) {
-          const { error } = await supabase
-            .from('profiles')
-            .upsert({
-              id: user.id,
-              full_name: formData.name,
-              gender: formData.gender,
-              birth_date: formData.birthDate,
-              birth_time: formData.birthTime,
-              birth_place: formData.birthPlace,
-              latitude: coords.lat,
-              longitude: coords.lng,
-              goal: formData.goal,
-              zodiac_sign: calculatedZodiac,
-              updated_at: new Date(),
-            });
-
-          if (error) throw error;
-        }
-        
-        router.replace('/(tabs)/home');
-      } catch (err) {
-        console.error('შეცდომა პროფილის შენახვისას:', err);
-        router.replace('/(tabs)/home');
+      // ❗ validation (ახალი)
+      if (!formData.birthDate || !formData.birthTime || !formData.birthPlace) {
+        console.log("❌ Missing required fields");
+        return;
       }
+      
+      // კოორდინატები
+      const coords = CITY_COORDINATES[formData.birthPlace] || { lat: 41.7151, lng: 44.8271 };
+
+      // 🔥 timezone FIX (დამრგვალებული)
+      const timezone = Math.round((new Date().getTimezoneOffset() / -60) * 100) / 100;
+
+      console.log("🔥 SAVING PROFILE:", {
+        ...formData,
+        coords,
+        timezone
+      });
+
+      if (user) {
+        const { error } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: formData.name,
+            gender: formData.gender,
+            birth_date: formData.birthDate,
+            birth_time: formData.birthTime,
+            birth_place: formData.birthPlace,
+            latitude: coords.lat,
+            longitude: coords.lng,
+            timezone: timezone, // ✅ აქ უკვე სწორია
+            goal: formData.goal,
+            zodiac_sign: calculatedZodiac,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+
+        // 🔥 ვასუფთავებთ ნატალური რუკის ქეშს პროფილის განახლების შემდეგ
+        await clearNatalCache();
+      }
+
+      router.replace('/(tabs)/home');
+
+    } catch (err) {
+      console.error('❌ შეცდომა პროფილის შენახვისას:', err);
+      router.replace('/(tabs)/home');
     }
-  };
+  }
+};
 
   const updateField = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });

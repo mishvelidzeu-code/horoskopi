@@ -16,6 +16,8 @@ import {
     View,
 } from 'react-native';
 import { useAppTheme } from '../lib/ThemeContext';
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width } = Dimensions.get('window');
 
@@ -60,7 +62,7 @@ const NUMEROLOGY_DB: Record<number, { title: string, meaning: string }> = {
 };
 
 export default function NumerologyScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 დავამატეთ isPrime-ის ამოღება
 
     const [day, setDay] = useState('');
     const [month, setMonth] = useState('');
@@ -207,9 +209,17 @@ export default function NumerologyScreen() {
                                 {resultNumber && NUMEROLOGY_DB[resultNumber].title}
                             </Text>
                             <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                            <Text style={[styles.resultMeaning, { color: colors.textMain }]}>
-                                {resultNumber && NUMEROLOGY_DB[resultNumber].meaning}
-                            </Text>
+                            
+                            {/* 🔥 აქ დაემატა დაბლოკვის ლოგიკა განმარტების ტექსტზე */}
+                            <View style={{ minHeight: 150 }}>
+                                <Text style={[styles.resultMeaning, { color: colors.textMain }]}>
+                                    {resultNumber && NUMEROLOGY_DB[resultNumber].meaning}
+                                </Text>
+
+                                {!isPrime && (
+                                    <PrimeLock title="ბედის კოდის განმარტება დაბლოკილია" />
+                                )}
+                            </View>
                         </View>
 
                         <TouchableOpacity 
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
     numberCircle: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', borderWidth: 2, marginBottom: 25 },
     bigNumber: { fontSize: 64, fontWeight: '900' },
 
-    resultCard: { width: '100%', padding: 24, borderRadius: 20, borderWidth: 1, marginBottom: 20 },
+    resultCard: { width: '100%', padding: 24, borderRadius: 20, borderWidth: 1, marginBottom: 20, overflow: 'hidden' },
     resultSubtitle: { fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 15 },
     divider: { height: 1, width: '100%', marginBottom: 15 },
     resultMeaning: { fontSize: 15, lineHeight: 26, fontWeight: '500', textAlign: 'justify' },

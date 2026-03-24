@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mishvela.horoscopeappnew",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -52,8 +53,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8a82942e-46a3-41c7-85b4-4ac4f70c3c3f"
+        "projectId": "a241fee1-6c81-47f6-af08-784050521441"
       }
-    }
+    },
+    "owner": "mishvelidze"
   }
 }

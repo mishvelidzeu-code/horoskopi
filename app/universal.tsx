@@ -14,6 +14,8 @@ import {
     View,
 } from 'react-native';
 import { useAppTheme } from '../lib/ThemeContext';
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width } = Dimensions.get('window');
 
@@ -99,7 +101,7 @@ const generateDeck = () => {
 };
 
 export default function ThreeCardScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 ამოვიღეთ isPrime
 
     const [deck, setDeck] = useState<any[]>([]);
     const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
@@ -181,6 +183,7 @@ export default function ThreeCardScreen() {
                                             { 
                                                 backgroundColor: isSelected ? colors.surface : colors.primary,
                                                 borderColor: isSelected ? card.color : 'transparent',
+                                                borderStyle: isSelected ? 'solid' : 'solid',
                                                 borderWidth: isSelected ? 1 : 0
                                             }
                                         ]}
@@ -217,9 +220,17 @@ export default function ThreeCardScreen() {
                                             <Text style={[styles.cardRank, { color: card.color }]}>{card.rank}</Text>
                                             <Text style={styles.cardSuit}>{card.suitIcon}</Text>
                                         </View>
-                                        <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
-                                            {card.meaning}
-                                        </Text>
+                                        
+                                        {/* 🔥 აქ ჩავსვით დაბლოკვის ლოგიკა განმარტებაზე */}
+                                        <View style={{ flex: 1, minHeight: 60, overflow: 'hidden' }}>
+                                            <Text style={[styles.cardMeaning, { color: colors.textMain }]}>
+                                                {card.meaning}
+                                            </Text>
+
+                                            {!isPrime && (
+                                                <PrimeLock title="განმარტება დაბლოკილია" />
+                                            )}
+                                        </View>
                                     </View>
                                 </View>
                             );
@@ -254,17 +265,15 @@ const styles = StyleSheet.create({
     
     counterText: { fontSize: 16, fontWeight: '800', textAlign: 'center', marginBottom: 20, textTransform: 'uppercase' },
 
-    // 36 კარტის ბადე
     gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
     miniCard: { width: (width - 48 - 40) / 6, height: 65, borderRadius: 8, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
     miniRank: { fontSize: 16, fontWeight: '900' },
     miniSuit: { fontSize: 14 },
 
-    // შედეგები
     resultsSection: { width: '100%' },
     resultsMainTitle: { fontSize: 24, fontWeight: '900', marginBottom: 25, textAlign: 'center' },
 
-    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
+    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
     positionTitle: { fontSize: 14, fontWeight: '800', textTransform: 'uppercase', marginBottom: 15 },
     
     cardInfoRow: { flexDirection: 'row', alignItems: 'center' },

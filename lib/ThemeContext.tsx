@@ -19,6 +19,7 @@ interface ThemeContextType {
   colors: typeof COLORS; // პირდაპირ ფერებს ვაწვდით
   isPrime: boolean;
   isLoading: boolean;
+  activeTheme: string; // 👈 დაემატა ეს ხაზი
   checkSubscription: () => Promise<void>;
 }
 
@@ -59,7 +60,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const contextValue = useMemo(
-    () => ({ colors: COLORS, isPrime, isLoading, checkSubscription }),
+    () => ({ 
+      colors: COLORS, 
+      isPrime, 
+      isLoading, 
+      activeTheme: 'dark', // 👈 დაემატა ეს მნიშვნელობა (რადგან COLORS მუქი პალიტრაა)
+      checkSubscription 
+    }),
     [isPrime, isLoading]
   );
 

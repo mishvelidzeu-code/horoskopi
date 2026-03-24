@@ -16,6 +16,8 @@ import {
     View,
 } from 'react-native';
 import { useAppTheme } from '../lib/ThemeContext'; // შენი თემის იმპორტი
+// 🔥 შემოვიტანეთ PrimeLock კომპონენტი
+import { PrimeLock } from '../components/PrimeLock';
 
 const { width } = Dimensions.get('window');
 
@@ -59,7 +61,7 @@ const CARDS_DB = [
 ];
 
 export default function FourKingsScreen() {
-    const { colors } = useAppTheme();
+    const { colors, isPrime } = useAppTheme(); // 🔥 დავამატეთ isPrime-ის ამოღება
 
     const [names, setNames] = useState(['', '', '', '']);
     const [results, setResults] = useState<any[]>([]);
@@ -176,10 +178,16 @@ export default function FourKingsScreen() {
                                         <Text style={styles.cardSuit}>{item.card.suit}</Text>
                                     </View>
                                     
-                                    {/* ახსნა */}
-                                    <Text style={[styles.resultMeaning, { color: colors.textMuted }]}>
-                                        {item.card.meaning}
-                                    </Text>
+                                    {/* ახსნა - 🔥 ჩავამატეთ PrimeLock */}
+                                    <View style={{ flex: 1, minHeight: 60, overflow: 'hidden' }}>
+                                        <Text style={[styles.resultMeaning, { color: colors.textMuted }]}>
+                                            {item.card.meaning}
+                                        </Text>
+
+                                        {!isPrime && (
+                                            <PrimeLock title="განმარტება დაბლოკილია" />
+                                        )}
+                                    </View>
                                 </View>
                             </View>
                         ))}
@@ -222,7 +230,7 @@ const styles = StyleSheet.create({
     resultsSection: { width: '100%' },
     resultsTitle: { fontSize: 22, fontWeight: '900', marginBottom: 20, textAlign: 'center' },
     
-    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16 },
+    resultCard: { padding: 20, borderRadius: 20, borderWidth: 1, marginBottom: 16, overflow: 'hidden' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
     resultName: { fontSize: 18, fontWeight: '800' },
     resultCardName: { fontSize: 14, fontWeight: '800', textTransform: 'uppercase' },
